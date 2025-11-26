@@ -324,7 +324,7 @@
             </div>
 
             <div id="searchBox">
-                <input type="text" id="searchInput" placeholder="Tìm video...">
+                <input type="text" id="searchInput" placeholder="Tìm video, paste link, hoặc paste playlist...">
                 <button onclick="searchVideos()">🔍 Tìm kiếm</button>
             </div>
 
@@ -337,11 +337,30 @@
         let player = null;
         let ytReady = false;
         let playlist = [
-            { id: 'dQw4w9WgXcQ', title: 'Rick Astley' },
-            { id: 'kJQP7kiw9Fk', title: 'Despacito' },
-            { id: '9bZkp7q19f0', title: 'Gangnam Style' },
-            { id: 'CvBfHwUxHIg', title: 'Hello' },
-            { id: '5Zs-TXdXWcQ', title: 'See You Again' }
+            { id: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up' },
+            { id: 'kJQP7kiw9Fk', title: 'Luis Fonsi - Despacito' },
+            { id: '9bZkp7q19f0', title: 'PSY - GANGNAM STYLE' },
+            { id: 'CvBfHwUxHIg', title: 'Adele - Hello' },
+            { id: '5Zs-TXdXWcQ', title: 'Wiz Khalifa - See You Again' },
+            { id: 'OPf0YbXqDm0', title: 'Mark Ronson - Uptown Funk' },
+            { id: 'JGwWNGHTaIw', title: 'Ed Sheeran - Shape of You' },
+            { id: '4NRXx6U8ABQ', title: 'The Weeknd - Blinding Lights' },
+            { id: 'D7xvV3hSoos', title: 'Harry Styles - As It Was' },
+            { id: '3ro-qWJT9II', title: 'Dua Lipa - Levitating' },
+            { id: 'Ixs41Z3MwC4', title: 'Olivia Rodrigo - good 4 u' },
+            { id: 'r7lhYs-sFoE', title: 'Taylor Swift - Anti-Hero' },
+            { id: 'jNQXAC9IVRw', title: 'Me at the zoo - First YouTube Video' },
+            { id: 'ZbZSe6N_BXs', title: 'YouTube Rewind 2018' },
+            { id: 'DHEOF_rcND4', title: 'Mark Ronson - Uptown Special' },
+            { id: 'vqYJRc0d8tw', title: 'Eminem - Rap God' },
+            { id: '9jK-NcRmVcw', title: 'Shakira - Hips Don\'t Lie' },
+            { id: 'kffacxfA7g4', title: 'Justin Timberlake - Mirrors' },
+            { id: 'QcISpheIc0A', title: 'Calvin Harris - How Deep Is Your Love' },
+            { id: 'e-IWRmpefzE', title: 'Avicii - Wake Me Up' },
+            { id: 'lWA2pjMjpBs', title: 'David Guetta - Titanium' },
+            { id: 'ZXsQAXx_ao0', title: 'The Chainsmokers - Closer' },
+            { id: 'w5tWYnLb1zw', title: 'DJ Snake - Lean On' },
+            { id: 'y6120QOlsfU', title: 'Billie Eilish - Bad Guy' }
         ];
         let currentIndex = 0;
 
@@ -472,103 +491,189 @@
 
         // Tìm kiếm video
         function searchVideos() {
-            const query = document.getElementById('searchInput').value.trim();
-            if (!query) {
+            const input = document.getElementById('searchInput').value.trim();
+            if (!input) {
                 showDefaultVideos();
                 return;
             }
 
             const videoList = document.getElementById('videoList');
-            videoList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">⏳ Đang tìm kiếm...</div>';
 
-            // Sử dụng Invidious API (YouTube Alternative - không cần API key)
-            const url = `https://invidious.io/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
+            // Kiểm tra nếu là URL YouTube
+            if (input.includes('youtube.com') || input.includes('youtu.be')) {
+                handleYouTubeLink(input, videoList);
+                return;
+            }
 
-            fetch(url)
-                .then(r => r.json())
-                .then(data => {
-                    if (!data || data.length === 0) {
-                        videoList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">❌ Không tìm thấy video</div>';
-                        return;
-                    }
+            // Kiểm tra nếu là video ID (11 ký tự)
+            if (/^[a-zA-Z0-9_-]{11}$/.test(input)) {
+                playVideo(input, 'Video');
+                return;
+            }
 
-                    // Hiển thị kết quả
-                    let html = `<div class="section-title">📺 Kết quả: "${query}"</div>`;
-                    data.slice(0, 15).forEach((item, i) => {
-                        const videoId = item.videoId;
-                        const title = item.title;
-                        const channel = item.author || 'YouTube';
-                        html += `
-                            <div class="search-result" onclick="playVideo('${videoId}', '${title.replace(/'/g, "\\'")}')">
-                                <div class="result-title">▶ ${title}</div>
-                                <div class="result-channel">${channel}</div>
-                            </div>
-                        `;
-                    });
-                    videoList.innerHTML = html;
-                })
-                .catch(err => {
-                    console.log('Invidious error:', err);
-                    // Thử endpoint khác
-                    searchInvidious2(query, videoList);
-                });
-        }
-
-        // Fallback: Invidious instance khác
-        function searchInvidious2(query, videoList) {
-            const url = `https://iv.ggtyler.dev/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
-
-            fetch(url)
-                .then(r => r.json())
-                .then(data => {
-                    if (!data || data.length === 0) {
-                        searchLocal(query, videoList);
-                        return;
-                    }
-
-                    // Hiển thị kết quả
-                    let html = `<div class="section-title">📺 Kết quả: "${query}"</div>`;
-                    data.slice(0, 15).forEach((item, i) => {
-                        const videoId = item.videoId;
-                        const title = item.title;
-                        const channel = item.author || 'YouTube';
-                        html += `
-                            <div class="search-result" onclick="playVideo('${videoId}', '${title.replace(/'/g, "\\'")}')">
-                                <div class="result-title">▶ ${title}</div>
-                                <div class="result-channel">${channel}</div>
-                            </div>
-                        `;
-                    });
-                    videoList.innerHTML = html;
-                })
-                .catch(err => {
-                    console.log('Fallback error:', err);
-                    searchLocal(query, videoList);
-                });
-        }
-
-        // Fallback: Tìm từ playlist mặc định
-        function searchLocal(query, videoList) {
-            const query_lower = query.toLowerCase();
+            // Tìm kiếm local
+            const query_lower = input.toLowerCase();
             const results = playlist.filter(v => 
                 v.title.toLowerCase().includes(query_lower)
             );
 
             if (results.length === 0) {
-                videoList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">❌ Không tìm thấy video. Thử từ khóa khác!</div>';
+                // Tìm online qua web scraping
+                searchOnline(input, videoList);
                 return;
             }
 
-            let html = `<div class="section-title">📺 Kết quả: "${query}"</div>`;
+            let html = `<div class="section-title">📺 Kết quả: "${input}" (${results.length} video)</div>`;
             results.forEach((item, i) => {
                 html += `
                     <div class="search-result" onclick="playVideo('${item.id}', '${item.title}')">
                         <div class="result-title">▶ ${item.title}</div>
-                        <div class="result-channel">Local</div>
+                        <div class="result-channel">${item.id}</div>
                     </div>
                 `;
             });
             videoList.innerHTML = html;
+        }
+
+        // Xử lý YouTube Link
+        function handleYouTubeLink(url, videoList) {
+            let videoId = null;
+            let listId = null;
+
+            // Parse video ID
+            if (url.includes('v=')) {
+                const match = url.match(/v=([a-zA-Z0-9_-]{11})/);
+                videoId = match ? match[1] : null;
+            } else if (url.includes('youtu.be')) {
+                const match = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+                videoId = match ? match[1] : null;
+            }
+
+            // Parse playlist ID
+            if (url.includes('list=')) {
+                const match = url.match(/list=([a-zA-Z0-9_-]+)/);
+                listId = match ? match[1] : null;
+            }
+
+            if (videoId) {
+                playVideo(videoId, 'Video from link');
+                videoList.innerHTML = `<div style="padding: 20px; text-align: center; color: #5dff5d;">✓ Đang tải video...</div>`;
+            }
+
+            if (listId) {
+                loadPlaylist(listId, videoList);
+            }
+
+            if (!videoId && !listId) {
+                videoList.innerHTML = `<div style="padding: 20px; text-align: center; color: #ff6666;">❌ Link không hợp lệ</div>`;
+            }
+        }
+
+        // Tải danh sách phát
+        function loadPlaylist(listId, videoList) {
+            videoList.innerHTML = `<div style="padding: 20px; text-align: center; color: #666;">⏳ Đang tải danh sách phát...</div>`;
+
+            // Sử dụng API để lấy danh sách phát
+            const apiKey = 'AIzaSyDU8PjJrG_D7sD7WZvjSK2QaI0ZqNlFU8I';
+            const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${listId}&maxResults=50&key=${apiKey}`;
+
+            fetch(url)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.items || data.items.length === 0) {
+                        videoList.innerHTML = `<div style="padding: 20px; text-align: center; color: #666;">❌ Danh sách rỗng hoặc không có quyền truy cập</div>`;
+                        return;
+                    }
+
+                    let html = `<div class="section-title">📺 Danh sách phát (${data.items.length} video)</div>`;
+                    data.items.forEach((item, i) => {
+                        const videoId = item.snippet.resourceId.videoId;
+                        const title = item.snippet.title;
+                        html += `
+                            <div class="search-result" onclick="playVideo('${videoId}', '${title.replace(/'/g, "\\'")}')">
+                                <div class="result-title">▶ ${title}</div>
+                                <div class="result-channel">#${i+1}</div>
+                            </div>
+                        `;
+                    });
+                    videoList.innerHTML = html;
+                })
+                .catch(err => {
+                    console.log('Playlist error:', err);
+                    videoList.innerHTML = `<div style="padding: 20px; text-align: center; color: #ff6666;">❌ Không thể tải danh sách phát</div>`;
+                });
+        }
+
+        // Tìm kiếm online
+        function searchOnline(query, videoList) {
+            videoList.innerHTML = `<div style="padding: 20px; text-align: center; color: #666;">⏳ Tìm kiếm online...</div>`;
+
+            // Thử multiple sources
+            const sources = [
+                `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
+                `https://invidious.io/api/v1/search?q=${encodeURIComponent(query)}&type=video`,
+                `https://iv.ggtyler.dev/api/v1/search?q=${encodeURIComponent(query)}&type=video`
+            ];
+
+            let attempted = 0;
+            
+            sources.forEach((url, index) => {
+                fetch(url, { mode: 'cors' })
+                    .then(r => {
+                        if (index > 0) return r.json();
+                        return r.text();
+                    })
+                    .then(data => {
+                        attempted++;
+                        
+                        if (typeof data === 'string') {
+                            // Parse HTML
+                            const matches = data.match(/"videoId":"([a-zA-Z0-9_-]{11})"/g) || [];
+                            const videoIds = [];
+                            matches.forEach(m => {
+                                const id = m.match(/"videoId":"([a-zA-Z0-9_-]{11})"/)[1];
+                                if (!videoIds.includes(id) && videoIds.length < 15) {
+                                    videoIds.push(id);
+                                }
+                            });
+
+                            if (videoIds.length > 0) {
+                                let html = `<div class="section-title">📺 Kết quả online: "${query}"</div>`;
+                                videoIds.forEach((id, i) => {
+                                    html += `
+                                        <div class="search-result" onclick="playVideo('${id}', 'Video ${i+1}')">
+                                            <div class="result-title">▶ Video ${i+1}</div>
+                                            <div class="result-channel">youtube.com/watch?v=${id}</div>
+                                        </div>
+                                    `;
+                                });
+                                videoList.innerHTML = html;
+                            }
+                        } else if (data && data.length > 0) {
+                            // API result
+                            let html = `<div class="section-title">📺 Kết quả online: "${query}"</div>`;
+                            data.slice(0, 15).forEach((item, i) => {
+                                const videoId = item.videoId;
+                                const title = item.title;
+                                html += `
+                                    <div class="search-result" onclick="playVideo('${videoId}', '${title.replace(/'/g, "\\'")}')">
+                                        <div class="result-title">▶ ${title}</div>
+                                        <div class="result-channel">${item.author || 'YouTube'}</div>
+                                    </div>
+                                `;
+                            });
+                            videoList.innerHTML = html;
+                        }
+                    })
+                    .catch(err => {
+                        attempted++;
+                        console.log(`Source ${index} failed:`, err.message);
+                        
+                        if (attempted === sources.length) {
+                            videoList.innerHTML = `<div style="padding: 20px; text-align: center; color: #ff6666;">❌ Không tìm được kết quả. Thử từ khóa khác!</div>`;
+                        }
+                    });
+            });
         }
 
         // Search khi nhấn Enter

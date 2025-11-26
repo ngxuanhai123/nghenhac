@@ -39,28 +39,6 @@
             white-space: nowrap;
         }
 
-        #screen-off-badge {
-            background-color: #1a4d1a;
-            border: 1px solid #2d8d2d;
-            color: #5dff5d;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: bold;
-            display: none;
-            white-space: nowrap;
-        }
-
-        #screen-off-badge.active {
-            display: inline-block;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
         #search-container {
             flex: 1;
             display: flex;
@@ -102,163 +80,29 @@
 
         #app {
             flex: 1;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
         }
 
-        #player-container {
-            background-color: #000;
-            aspect-ratio: 16/9;
-            flex-shrink: 0;
-            width: 100%;
-            position: relative;
-        }
-
-        #player {
+        #youtube-frame {
+            flex: 1;
             width: 100%;
             height: 100%;
+            border: none;
         }
 
-        #results {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        #results::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        #results::-webkit-scrollbar-track {
-            background: #181818;
-        }
-
-        #results::-webkit-scrollbar-thumb {
-            background: #404040;
-            border-radius: 3px;
-        }
-
-        .section-title {
-            font-size: 14px;
-            font-weight: 600;
-            margin: 15px 0 10px 0;
-            color: #aaa;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .video-card {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 8px;
-            transition: background-color 0.2s;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-
-        .video-card:active {
+        .info-msg {
             background-color: #1a1a1a;
-        }
-
-        .thumbnail {
-            width: 140px;
-            height: 79px;
-            background-size: cover;
-            background-position: center;
-            background-color: #222;
-            flex-shrink: 0;
-            border-radius: 6px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .thumbnail::after {
-            content: '▶';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #fff;
-            font-size: 20px;
-            opacity: 0.7;
-            text-shadow: 0 0 4px rgba(0,0,0,0.8);
-        }
-
-        .video-info {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            min-width: 0;
-        }
-
-        .title {
-            font-size: 13px;
-            font-weight: 500;
-            line-height: 1.4;
-            margin-bottom: 4px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .channel {
-            font-size: 11px;
-            color: #aaa;
-            margin-bottom: 2px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .views {
-            font-size: 11px;
-            color: #666;
-        }
-
-        .loading {
+            border-top: 1px solid #303030;
+            padding: 15px;
             text-align: center;
-            padding: 20px;
             color: #aaa;
-            font-size: 13px;
-        }
-
-        .error-msg {
-            background-color: #2a1a1a;
-            border: 1px solid #8b3a3a;
-            color: #ff9999;
-            padding: 10px;
-            border-radius: 6px;
-            margin: 10px 0;
             font-size: 12px;
         }
 
-        .suggestions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            padding: 10px 0;
-        }
-
-        .suggestion-btn {
-            background-color: #212121;
-            border: 1px solid #303030;
+        .info-msg strong {
             color: #fff;
-            padding: 10px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: background-color 0.2s;
-        }
-
-        .suggestion-btn:active {
-            background-color: #303030;
         }
 
         @media (max-width: 600px) {
@@ -270,371 +114,72 @@
                 font-size: 16px;
             }
 
-            .thumbnail {
-                width: 100px;
-                height: 56px;
+            #searchInput {
+                font-size: 13px;
+                padding: 6px 10px;
             }
 
-            .title {
-                font-size: 12px;
-            }
-
-            .channel {
-                font-size: 10px;
-            }
-
-            .views {
-                font-size: 10px;
-            }
-
-            .suggestions {
-                grid-template-columns: 1fr;
+            #searchButton {
+                padding: 6px 10px;
+                font-size: 13px;
             }
         }
     </style>
-    <script src="https://www.youtube.com/iframe_api"></script>
-    <script>
-        let player = null;
-        let segments = [];
-        let skipInterval = null;
-        let currentVideoId = '';
-        let youtubeReady = false;
-        let isScreenOff = false;
-        let wakeLock = null;
-        let audioContext = null;
-
-        // Mock data - danh sách video được lưu trữ
-        const mockVideos = {
-            'trending': [
-                { videoId: 'jNQXAC9IVRw', title: 'Me at the zoo', channel: 'jawed', thumbnail: 'https://i.ytimg.com/vi/jNQXAC9IVRw/mqdefault.jpg' },
-                { videoId: 'dQw4w9WgXcQ', title: 'Never Gonna Give You Up', channel: 'Rick Astley', thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg' },
-                { videoId: '9bZkp7q19f0', title: 'PSY - GANGNAM STYLE', channel: 'officialpsy', thumbnail: 'https://i.ytimg.com/vi/9bZkp7q19f0/mqdefault.jpg' },
-                { videoId: 'kJQP7kiw9Fk', title: 'Luis Fonsi - Despacito', channel: 'Luis Fonsi', thumbnail: 'https://i.ytimg.com/vi/kJQP7kiw9Fk/mqdefault.jpg' },
-            ],
-            'music': [
-                { videoId: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up', channel: 'Rick Astley', thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg' },
-                { videoId: 'kJQP7kiw9Fk', title: 'Luis Fonsi - Despacito', channel: 'Luis Fonsi', thumbnail: 'https://i.ytimg.com/vi/kJQP7kiw9Fk/mqdefault.jpg' },
-                { videoId: '9bZkp7q19f0', title: 'PSY - GANGNAM STYLE', channel: 'officialpsy', thumbnail: 'https://i.ytimg.com/vi/9bZkp7q19f0/mqdefault.jpg' },
-            ]
-        };
-
-        window.onYouTubeIframeAPIReady = function() {
-            console.log('YouTube API Ready');
-            youtubeReady = true;
-        };
-
-        function loadYouTubeAPI() {
-            return new Promise((resolve) => {
-                if (youtubeReady) {
-                    resolve();
-                    return;
-                }
-                const script = document.createElement('script');
-                script.src = 'https://www.youtube.com/iframe_api';
-                script.onload = () => {
-                    const checkReady = setInterval(() => {
-                        if (window.YT && window.YT.Player) {
-                            youtubeReady = true;
-                            clearInterval(checkReady);
-                            resolve();
-                        }
-                    }, 100);
-                };
-                document.head.appendChild(script);
-            });
-        }
-
-        function loadVideo(videoId) {
-            if (!videoId || !youtubeReady) return;
-
-            if (player) {
-                player.loadVideoById(videoId);
-            } else {
-                player = new YT.Player('player', {
-                    height: '100%',
-                    width: '100%',
-                    videoId: videoId,
-                    playerVars: {
-                        autoplay: 1,
-                        controls: 1,
-                        rel: 0,
-                        modestbranding: 1,
-                        playsinline: 1,
-                        fs: 1
-                    },
-                    events: {
-                        onReady: onPlayerReady,
-                        onStateChange: onPlayerStateChange
-                    }
-                });
-            }
-            currentVideoId = videoId;
-            fetchSponsorBlocks(videoId);
-            loadSuggestions();
-        }
-
-        function onPlayerReady(event) {
-            event.target.playVideo();
-        }
-
-        function onPlayerStateChange(event) {
-            if (event.data === YT.PlayerState.PLAYING) {
-                if (!skipInterval) {
-                    skipInterval = setInterval(checkSkip, 250);
-                }
-                // Kích hoạt Wake Lock khi đang phát
-                requestWakeLock();
-                // Giữ âm thanh khi màn hình tắt
-                preventSleepMode();
-            } else {
-                clearInterval(skipInterval);
-                skipInterval = null;
-                releaseWakeLock();
-            }
-        }
-
-        function checkSkip() {
-            if (!player || !player.getCurrentTime) return;
-            
-            const current = player.getCurrentTime();
-            for (let seg of segments) {
-                if (!seg.skipped && current >= seg.start && current < seg.end) {
-                    player.seekTo(seg.end, true);
-                    seg.skipped = true;
-                    break;
-                }
-            }
-        }
-
-        function fetchSponsorBlocks(videoId) {
-            fetch(`https://sponsor.ajay.app/api/skipSegments?videoID=${videoId}&categories=["sponsor","selfpromo","interaction","intro","outro"]`)
-                .then(r => r.json())
-                .then(data => {
-                    segments = (data || []).map(s => ({
-                        start: s.segment[0],
-                        end: s.segment[1],
-                        skipped: false
-                    }));
-                })
-                .catch(err => console.log('SponsorBlock:', err.message));
-        }
-
-        async function requestWakeLock() {
-            try {
-                if ('wakeLock' in navigator && !wakeLock) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Wake Lock activated');
-                }
-            } catch (err) {
-                console.log('Wake Lock not supported:', err.message);
-            }
-        }
-
-        function releaseWakeLock() {
-            if (wakeLock) {
-                wakeLock.release().catch(err => console.log('Release error:', err));
-                wakeLock = null;
-                console.log('Wake Lock released');
-            }
-        }
-
-        function preventSleepMode() {
-            // Tạo video ẩn để giữ âm thanh phát khi tắt màn hình
-            let hiddenVideo = document.getElementById('hidden-audio-video');
-            if (!hiddenVideo) {
-                hiddenVideo = document.createElement('video');
-                hiddenVideo.id = 'hidden-audio-video';
-                hiddenVideo.style.display = 'none';
-                hiddenVideo.loop = true;
-                hiddenVideo.muted = false;
-                document.body.appendChild(hiddenVideo);
-            }
-        }
-
-        // Xử lý khi màn hình bị tắt
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                isScreenOff = true;
-                const badge = document.getElementById('screen-off-badge');
-                if (badge) badge.classList.add('active');
-                console.log('🔇 Screen off - audio continues');
-                
-                // Đảm bảo âm thanh tiếp tục
-                if (player && player.getPlayerState() === YT.PlayerState.PLAYING) {
-                    // Giữ context audio hoạt động
-                    if (!audioContext) {
-                        try {
-                            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                        } catch (e) {
-                            console.log('AudioContext not supported');
-                        }
-                    }
-                }
-            } else {
-                isScreenOff = false;
-                const badge = document.getElementById('screen-off-badge');
-                if (badge) badge.classList.remove('active');
-                console.log('🔊 Screen on');
-            }
-        });
-
-        // Ngăn chặn tắt âm thanh khi tắt màn hình
-        document.addEventListener('pause', (e) => {
-            if (isScreenOff && player && currentVideoId) {
-                setTimeout(() => {
-                    if (player && player.getPlayerState() !== YT.PlayerState.PLAYING) {
-                        player.playVideo();
-                    }
-                }, 100);
-            }
-        }, true);
-
-        function loadSuggestions() {
-            const videos = mockVideos['trending'];
-            displayVideos(videos, 'Gợi ý tiếp theo');
-        }
-
-        function searchVideos(query) {
-            if (!query.trim()) {
-                showSuggestions();
-                return;
-            }
-
-            const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div> Đang tìm kiếm...</div>';
-
-            setTimeout(() => {
-                const query_lower = query.toLowerCase();
-                let results = [];
-
-                for (let category in mockVideos) {
-                    mockVideos[category].forEach(v => {
-                        if (v.title.toLowerCase().includes(query_lower) || 
-                            v.channel.toLowerCase().includes(query_lower)) {
-                            results.push(v);
-                        }
-                    });
-                }
-
-                if (results.length === 0) {
-                    results = mockVideos['trending'];
-                }
-
-                displayVideos(results, `Kết quả: "${query}"`);
-            }, 500);
-        }
-
-        function showSuggestions() {
-            const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = `
-                <div class="section-title">Tìm kiếm phổ biến</div>
-                <div class="suggestions">
-                    <button class="suggestion-btn" onclick="quickSearch('nhạc')">🎵 Nhạc</button>
-                    <button class="suggestion-btn" onclick="quickSearch('phim')">🎬 Phim</button>
-                    <button class="suggestion-btn" onclick="quickSearch('game')">🎮 Game</button>
-                    <button class="suggestion-btn" onclick="quickSearch('hài')">😂 Hài hước</button>
-                </div>
-                <div class="section-title">Xu hướng</div>
-            `;
-
-            const videos = mockVideos['trending'];
-            const title_elem = resultsDiv.querySelector('.section-title:last-of-type');
-            videos.forEach(video => {
-                const card = document.createElement('div');
-                card.className = 'video-card';
-                card.onclick = () => loadVideo(video.videoId);
-                card.innerHTML = `
-                    <div class="thumbnail" style="background-image: url('${video.thumbnail}');"></div>
-                    <div class="video-info">
-                        <div>
-                            <div class="title">${escapeHtml(video.title)}</div>
-                            <div class="channel">${escapeHtml(video.channel)}</div>
-                        </div>
-                    </div>
-                `;
-                resultsDiv.appendChild(card);
-            });
-        }
-
-        function quickSearch(query) {
-            document.getElementById('searchInput').value = query;
-            loadYouTubeAPI().then(() => {
-                searchVideos(query);
-            });
-        }
-
-        function displayVideos(videos, title) {
-            const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = `<div class="section-title">${title}</div>`;
-
-            if (videos.length === 0) {
-                resultsDiv.innerHTML += '<div class="loading">Không có video nào</div>';
-                return;
-            }
-
-            videos.forEach(video => {
-                const card = document.createElement('div');
-                card.className = 'video-card';
-                card.onclick = () => loadVideo(video.videoId);
-                card.innerHTML = `
-                    <div class="thumbnail" style="background-image: url('${video.thumbnail}');"></div>
-                    <div class="video-info">
-                        <div>
-                            <div class="title">${escapeHtml(video.title)}</div>
-                            <div class="channel">${escapeHtml(video.channel)}</div>
-                        </div>
-                    </div>
-                `;
-                resultsDiv.appendChild(card);
-            });
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const searchButton = document.getElementById('searchButton');
-            const searchInput = document.getElementById('searchInput');
-
-            searchButton.addEventListener('click', () => {
-                searchVideos(searchInput.value);
-            });
-
-            searchInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    searchVideos(searchInput.value);
-                }
-            });
-
-            loadYouTubeAPI().then(() => {
-                console.log('YouTube API loaded');
-            });
-
-            showSuggestions();
-
-            window.addEventListener('beforeunload', () => {
-                releaseWakeLock();
-            });
-        });
-    </script>
 </head>
 <body>
     <div id="header">
         <div id="logo">▶ YouTube</div>
-        <div id="screen-off-badge">🔇 AUDIO</div>
         <div id="search-container">
             <input id="searchInput" type="text" placeholder="Tìm kiếm...">
             <button id="searchButton">🔍</button>
         </div>
     </div>
     <div id="app">
-        <div id="player-container">
-            <div id="player"></div>
+        <iframe 
+            id="youtube-frame"
+            src="https://www.youtube.com/embed/videoseries?list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen>
+        </iframe>
+        <div class="info-msg">
+            💡 <strong>Mẹo:</strong> Tìm kiếm video, nhấn Enter để xem kết quả trên YouTube
         </div>
-        <div id="results"></div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchButton = document.getElementById('searchButton');
+            const searchInput = document.getElementById('searchInput');
+            const youtubeFrame = document.getElementById('youtube-frame');
+
+            searchButton.addEventListener('click', () => {
+                searchYouTube(searchInput.value);
+            });
+
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchYouTube(searchInput.value);
+                }
+            });
+
+            function searchYouTube(query) {
+                if (!query.trim()) {
+                    // Về trang chủ YouTube
+                    youtubeFrame.src = 'https://www.youtube.com/embed/videoseries?list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf';
+                    return;
+                }
+
+                // Tìm kiếm trên YouTube
+                const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+                youtubeFrame.src = searchUrl;
+            }
+
+            // Tìm kiếm mặc định
+            searchInput.value = 'music';
+            setTimeout(() => {
+                searchYouTube('music');
+            }, 500);
+        });
+    </script>
 </body>
 </html>

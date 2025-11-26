@@ -290,6 +290,8 @@
         let skipInterval = null;
         let currentVideoId = '';
         let youtubeReady = false;
+        let isScreenOff = false;
+        let wakeLock = null;
 
         // Mock data - danh sách video được lưu trữ
         const mockVideos = {
@@ -370,11 +372,47 @@
                 if (!skipInterval) {
                     skipInterval = setInterval(checkSkip, 250);
                 }
+                // Kích hoạt Wake Lock khi đang phát
+                requestWakeLock();
             } else {
                 clearInterval(skipInterval);
                 skipInterval = null;
+                releaseWakeLock();
             }
         }
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator && !wakeLock) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock activated');
+                }
+            } catch (err) {
+                console.log('Wake Lock error:', err);
+            }
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock) {
+                wakeLock.release().catch(err => console.log('Release error:', err));
+                wakeLock = null;
+                console.log('Wake Lock released');
+            }
+        }
+
+        // Xử lý khi trang bị ẩn/hiển thị
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                isScreenOff = true;
+                if (player && player.getPlayerState() === YT.PlayerState.PLAYING) {
+                    // Giữ âm thanh phát khi màn hình tắt
+                    console.log('Screen off - audio continues');
+                }
+            } else {
+                isScreenOff = false;
+                console.log('Screen on');
+            }
+        });
 
         function checkSkip() {
             if (!player || !player.getCurrentTime) return;
@@ -532,6 +570,18 @@
 
             // Hiển thị gợi ý ban đầu
             showSuggestions();
+
+            // Xử lý khi tab bị ẩn
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden && player && player.getPlayerState() === 1) {
+                    console.log('App in background - audio continues');
+                }
+            });
+
+            // Giải phóng Wake Lock khi đóng trang
+            window.addEventListener('beforeunload', () => {
+                releaseWakeLock();
+            });
         });
     </script>
 </head>

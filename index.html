@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>YouTube Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #header {
+            background-color: #181818;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        #urlInput {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #303030;
+            border-radius: 20px;
+            background-color: #212121;
+            color: #fff;
+            margin-right: 10px;
+        }
+        #loadButton {
+            background-color: #ff0000;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        #player-container {
+            flex: 1;
+            position: relative;
+        }
+        #player {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        var player;
+        var segments = [];
+        var interval;
+
+        function onYouTubeIframeAPIReady() {
+            // API ready
+        }
+
+        function loadVideo() {
+            var url = document.getElementById('urlInput').value;
+            var videoId = extractVideoId(url);
+            if (videoId) {
+                if (player) {
+                    player.destroy();
+                }
+                player = new YT.Player('player', {
+                    height: '100%',
+                    width: '100%',
+                    videoId: videoId,
+                    playerVars: {
+                        'autoplay': 1,
+                        'controls': 1,
+                        'rel': 0,
+                        'modestbranding': 1,
+                        'playsinline': 1 // Helps with iOS playback
+                    },
+                    events: {
+                        'onReady': onPlayerReady,
+                        'onStateChange': onPlayerStateChange
+                    }
+                });
+            }
+        }
+
+        function extractVideoId(url) {
+            var regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            var match = url.match(regExp);
+            if (match && match[2].length === 11) {
+                return match[2];
+            }
+            var shortsReg = /shorts\/([^\/?#]+)/;
+            var shortsMatch = url.match(shortsReg);
+            if (shortsMatch) {
+                return shortsMatch[1];
+            }
+            return null;
+        }
+
+        function fetchSponsorBlocks(videoId) {
+            var categories = encodeURIComponent('["sponsor","selfpromo","interaction","intro","outro","preview","music_offtopic","filler"]');
+            fetch('https://sponsor.ajay.app/api/skipSegments?videoID=' + videoId + '&categories=' + categories)
+                .then(response => response.json())
+                .then(data => {
+                    segments = data.map(s => ({
+                        start: s.segment[0],
+                        end: s.segment[1],
+                        skipped: false
+                    }));
+                })
+                .catch(error => console.error('SponsorBlock fetch error:', error));
+        }
+
+        function onPlayerReady(event) {
+            fetchSponsorBlocks(player.getVideoData().video_id);
+            event.target.playVideo();
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.PLAYING) {
+                if (!interval) {
+                    interval = setInterval(checkSkip, 200); // Check every 200ms for smooth skipping
+                }
+            } else {
+                clearInterval(interval);
+                interval = null;
+            }
+        }
+
+        function checkSkip() {
+            var current = player.getCurrentTime();
+            for (let seg of segments) {
+                if (!seg.skipped && current >= seg.start && current < seg.end) {
+                    player.seekTo(seg.end, true);
+                    seg.skipped = true;
+                    break;
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="app">
+        <div id="header">
+            <input id="urlInput" type="text" placeholder="Paste YouTube URL here">
+            <button id="loadButton" onclick="loadVideo()">Load</button>
+        </div>
+        <div id="player-container">
+            <div id="player"></div>
+        </div>
+    </div>
+</body>
+</html>

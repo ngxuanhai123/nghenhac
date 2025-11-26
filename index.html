@@ -3,687 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HiHi - YouTube Player</title>
+    <title>Trình Phát YouTube & Tìm kiếm (Chặn mở App)</title>
     <style>
-        * {
+        /* CSS tối ưu cho màn hình nhỏ */
+        body {
+            font-family: sans-serif;
             margin: 0;
-            padding: 0;
+            padding: 10px;
+            background-color: #f0f0f0;
+        }
+        .controls {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        input[type="text"] {
+            width: calc(100% - 10px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
             box-sizing: border-box;
         }
-
-        body {
-            background-color: #0f0f0f;
-            color: #fff;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        #header {
-            background-color: #181818;
-            padding: 12px 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            z-index: 10;
-            flex-shrink: 0;
-        }
-
-        #logo {
-            font-size: 18px;
-            font-weight: bold;
-            color: #ff0000;
-            white-space: nowrap;
-        }
-
-        #badges {
-            display: flex;
-            gap: 6px;
-            font-size: 9px;
-        }
-
-        .badge {
-            background-color: #1a3a1a;
-            border: 1px solid #2d6d2d;
-            color: #5dff5d;
-            padding: 4px 6px;
-            border-radius: 3px;
-            white-space: nowrap;
-        }
-
-        #search-container {
-            flex: 1;
-            display: flex;
-            gap: 0;
-        }
-
-        #videoInput {
-            flex: 1;
-            padding: 8px 12px;
-            border: 1px solid #303030;
-            border-radius: 20px 0 0 20px;
-            background-color: #212121;
-            color: #fff;
-            font-size: 12px;
-            outline: none;
-            min-width: 0;
-        }
-
-        #videoInput:focus {
-            background-color: #2a2a2a;
-            border-color: #555;
-        }
-
-        #playBtn {
-            background-color: #ff0000;
-            color: #fff;
+        button {
+            width: 100%;
+            padding: 10px;
+            color: white;
             border: none;
-            padding: 8px 14px;
-            border-radius: 0 20px 20px 0;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: background-color 0.2s;
-            white-space: nowrap;
+            font-size: 16px;
+            margin-bottom: 5px;
         }
-
-        #playBtn:active {
+        #searchButton {
+            background-color: #FF6600; /* Màu cam để phân biệt với Google */
+        }
+        #searchButton:hover {
+            background-color: #e65c00;
+        }
+        #loadButton {
+            background-color: #ff0000; 
+        }
+        #loadButton:hover {
             background-color: #cc0000;
         }
-
-        #app {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        #playerContainer {
-            background-color: #000;
-            aspect-ratio: 16/9;
-            flex-shrink: 0;
+        #player-container {
             width: 100%;
+            padding-top: 56.25%; /* Tỉ lệ 16:9 */
+            position: relative;
         }
-
         #player {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-        }
-
-        #controls {
-            background-color: #1a1a1a;
-            padding: 10px;
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            border-top: 1px solid #303030;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            background-color: #303030;
-            color: #fff;
-            border: none;
-            padding: 6px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 11px;
-            transition: background-color 0.2s;
-            white-space: nowrap;
-        }
-
-        .btn:active {
-            background-color: #404040;
-        }
-
-        #content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 12px;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        #content::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        #content::-webkit-scrollbar-track {
-            background: #181818;
-        }
-
-        #content::-webkit-scrollbar-thumb {
-            background: #404040;
-            border-radius: 3px;
-        }
-
-        .video-card {
-            background-color: #1a1a1a;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .video-card:active {
-            background-color: #252525;
-        }
-
-        .video-title {
-            font-size: 12px;
-            font-weight: 500;
-            margin-bottom: 4px;
-        }
-
-        .video-id {
-            font-size: 10px;
-            color: #666;
-        }
-
-        #searchBox {
-            background-color: #212121;
-            border: 1px solid #303030;
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 12px;
-        }
-
-        #searchBox input {
-            width: 100%;
-            padding: 8px;
-            background-color: #1a1a1a;
-            border: 1px solid #303030;
-            border-radius: 4px;
-            color: #fff;
-            font-size: 12px;
-            outline: none;
-        }
-
-        #searchBox input:focus {
-            border-color: #ff0000;
-        }
-
-        #searchBox button {
-            width: 100%;
-            padding: 8px;
-            background-color: #ff0000;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-            margin-top: 8px;
-        }
-
-        #searchBox button:active {
-            background-color: #cc0000;
-        }
-
-        .search-result {
-            background-color: #1a1a1a;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .search-result:active {
-            background-color: #252525;
-        }
-
-        .result-title {
-            font-size: 12px;
-            font-weight: 500;
-            margin-bottom: 4px;
-            color: #fff;
-        }
-
-        .result-channel {
-            font-size: 10px;
-            color: #aaa;
-        }
-
-        .info-box {
-            background-color: #1a2a1a;
-            border: 1px solid #2d5d2d;
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 12px;
-            font-size: 11px;
-            color: #aaa;
-            line-height: 1.5;
-        }
-
-        @media (max-width: 600px) {
-            #header {
-                padding: 8px;
-                gap: 6px;
-            }
-
-            #logo {
-                font-size: 16px;
-            }
-
-            .badge {
-                font-size: 8px;
-                padding: 2px 4px;
-            }
-
-            #videoInput {
-                font-size: 11px;
-                padding: 6px 10px;
-            }
-
-            #playBtn {
-                padding: 6px 10px;
-                font-size: 12px;
-            }
-
-            .btn {
-                padding: 5px 8px;
-                font-size: 10px;
-            }
         }
     </style>
 </head>
 <body>
-    <div id="header">
-        <div id="logo">♫ HiHi</div>
-        <div id="badges">
-            <div class="badge">🚫 NO ADS</div>
-            <div class="badge">📥 DL</div>
-        </div>
-        <div id="search-container">
-            <input id="videoInput" type="text" placeholder="Video ID hoặc URL...">
-            <button id="playBtn">▶</button>
-        </div>
+
+    <div class="controls">
+        <h3>1. Tìm kiếm Video (Mở bằng Trình duyệt)</h3>
+        <input type="text" id="searchInput" placeholder="Tìm kiếm tên bài hát, ca sĩ...">
+        <button id="searchButton" onclick="searchYouTube()">Tìm trên YouTube Mobile</button>
+        <p style="font-size: 12px; color: #666; margin-top: 10px;">*Tự động mở phiên bản mobile (m.youtube.com) để tránh mở App lỗi thời.</p>
     </div>
 
-    <div id="app">
-        <div id="playerContainer">
-            <div id="player"></div>
-        </div>
-
-        <div id="controls">
-            <button class="btn" id="prevBtn">⏮ -10s</button>
-            <button class="btn" id="playPauseBtn">⏸ Dừng</button>
-            <button class="btn" id="nextBtn">+10s ⏭</button>
-        </div>
-
-        <div id="content">
-            <div class="info-box">
-                <strong>ℹ️ HiHi:</strong><br>
-                • Xem YouTube không quảng cáo<br>
-                • Nghe khi tắt màn hình<br>
-                • Tự chuyển bài
-            </div>
-
-            <div id="searchBox">
-                <input type="text" id="searchInput" placeholder="Tìm video, paste link, hoặc paste playlist...">
-                <button onclick="searchVideos()">🔍 Tìm kiếm</button>
-            </div>
-
-            <div id="videoList"></div>
-        </div>
+    <div class="controls">
+        <h3>2. Xem Video (Cần ID)</h3>
+        <input type="text" id="videoIdInput" placeholder="Nhập ID video (vd: dQw4w9WgXcQ)">
+        <button id="loadButton" onclick="loadVideo()">Xem Video</button>
     </div>
 
-    <script src="https://www.youtube.com/iframe_api"></script>
+    <div id="player-container">
+        <div id="player"></div>
+    </div>
+
     <script>
-        let player = null;
-        let ytReady = false;
-        let playlist = [
-            { id: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up' },
-            { id: 'kJQP7kiw9Fk', title: 'Luis Fonsi - Despacito' },
-            { id: '9bZkp7q19f0', title: 'PSY - GANGNAM STYLE' },
-            { id: 'CvBfHwUxHIg', title: 'Adele - Hello' },
-            { id: '5Zs-TXdXWcQ', title: 'Wiz Khalifa - See You Again' },
-            { id: 'OPf0YbXqDm0', title: 'Mark Ronson - Uptown Funk' },
-            { id: 'JGwWNGHTaIw', title: 'Ed Sheeran - Shape of You' },
-            { id: '4NRXx6U8ABQ', title: 'The Weeknd - Blinding Lights' },
-            { id: 'D7xvV3hSoos', title: 'Harry Styles - As It Was' },
-            { id: '3ro-qWJT9II', title: 'Dua Lipa - Levitating' },
-            { id: 'Ixs41Z3MwC4', title: 'Olivia Rodrigo - good 4 u' },
-            { id: 'r7lhYs-sFoE', title: 'Taylor Swift - Anti-Hero' },
-            { id: 'jNQXAC9IVRw', title: 'Me at the zoo - First YouTube Video' },
-            { id: 'ZbZSe6N_BXs', title: 'YouTube Rewind 2018' },
-            { id: 'DHEOF_rcND4', title: 'Mark Ronson - Uptown Special' },
-            { id: 'vqYJRc0d8tw', title: 'Eminem - Rap God' },
-            { id: '9jK-NcRmVcw', title: 'Shakira - Hips Don\'t Lie' },
-            { id: 'kffacxfA7g4', title: 'Justin Timberlake - Mirrors' },
-            { id: 'QcISpheIc0A', title: 'Calvin Harris - How Deep Is Your Love' },
-            { id: 'e-IWRmpefzE', title: 'Avicii - Wake Me Up' },
-            { id: 'lWA2pjMjpBs', title: 'David Guetta - Titanium' },
-            { id: 'ZXsQAXx_ao0', title: 'The Chainsmokers - Closer' },
-            { id: 'w5tWYnLb1zw', title: 'DJ Snake - Lean On' },
-            { id: 'y6120QOlsfU', title: 'Billie Eilish - Bad Guy' }
-        ];
-        let currentIndex = 0;
-
-        window.onYouTubeIframeAPIReady = function() {
-            console.log('YT API Ready');
-            ytReady = true;
-            showDefaultVideos();
-        };
-
-        function playVideo(videoId, title) {
-            if (!videoId) return;
-            
-            document.getElementById('videoInput').value = videoId;
-            
-            if (!ytReady || !window.YT) {
-                setTimeout(() => playVideo(videoId, title), 500);
-                return;
-            }
-
-            if (!player) {
-                player = new YT.Player('player', {
-                    height: '100%',
-                    width: '100%',
-                    videoId: videoId,
-                    playerVars: {
-                        autoplay: 1,
-                        controls: 1,
-                        rel: 0,
-                        fs: 1,
-                        modestbranding: 1,
-                        playsinline: 1,
-                        iv_load_policy: 3
-                    },
-                    events: {
-                        onStateChange: onStateChange
-                    }
-                });
+        // 1. Chức năng tìm kiếm YouTube Mobile (Mới)
+        function searchYouTube() {
+            var query = document.getElementById('searchInput').value;
+            if (query) {
+                // Thay đổi: Tìm kiếm trực tiếp trên phiên bản Mobile của YouTube
+                var mobileSearchUrl = 'https://m.youtube.com/results?search_query=' + encodeURIComponent(query);
+                // Mở tab mới
+                window.open(mobileSearchUrl, '_blank');
+                
+                // Hướng dẫn người dùng lấy ID
+                setTimeout(function() {
+                    alert('Tìm kiếm đã được mở trong tab/cửa sổ mới.\n\nSau khi tìm được, vui lòng xem URL của video để lấy ID (chuỗi ký tự cuối cùng) và dán vào ô bên dưới để phát.');
+                }, 500);
             } else {
+                alert('Vui lòng nhập từ khóa tìm kiếm.');
+            }
+        }
+
+        // 2. Chức năng Trình phát YouTube (Giữ nguyên)
+        var player;
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                height: '100%',
+                width: '100%',
+                videoId: 'dQw4w9WgXcQ', 
+                playerVars: {
+                    'playsinline': 1, // Quan trọng cho iOS
+                    'autoplay': 0,
+                    'controls': 1
+                },
+                events: {}
+            });
+        }
+
+        function loadVideo() {
+            var videoId = document.getElementById('videoIdInput').value;
+            if (videoId && player) {
                 player.loadVideoById(videoId);
-            }
-            
-            // Set index
-            currentIndex = playlist.findIndex(p => p.id === videoId);
-        }
-
-        function onStateChange(event) {
-            if (event.data === YT.PlayerState.PLAYING) {
-                document.getElementById('playPauseBtn').textContent = '⏸ Dừng';
-            } else if (event.data === YT.PlayerState.PAUSED) {
-                document.getElementById('playPauseBtn').textContent = '▶ Phát';
-            } else if (event.data === YT.PlayerState.ENDED) {
-                console.log('Video ended');
-                playNext();
+            } else if (!player) {
+                alert('Trình phát chưa sẵn sàng. Vui lòng đợi một lát.');
             }
         }
 
-        function playNext() {
-            currentIndex = (currentIndex + 1) % playlist.length;
-            const next = playlist[currentIndex];
-            playVideo(next.id, next.title);
-        }
-
-        function playPrev() {
-            currentIndex = (currentIndex - 1 + playlist.length) % playlist.length;
-            const prev = playlist[currentIndex];
-            playVideo(prev.id, prev.title);
-        }
-
-        // Controls
-        document.getElementById('playBtn').addEventListener('click', () => {
-            playVideo(document.getElementById('videoInput').value);
-        });
-
-        document.getElementById('videoInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                playVideo(document.getElementById('videoInput').value);
-            }
-        });
-
-        document.getElementById('playPauseBtn').addEventListener('click', () => {
-            if (!player) return;
-            if (player.getPlayerState() === YT.PlayerState.PLAYING) {
-                player.pauseVideo();
-            } else {
-                player.playVideo();
-            }
-        });
-
-        document.getElementById('prevBtn').addEventListener('click', () => {
-            if (player) {
-                player.seekTo(player.getCurrentTime() - 10, true);
-            }
-        });
-
-        document.getElementById('nextBtn').addEventListener('click', () => {
-            if (player) {
-                player.seekTo(player.getCurrentTime() + 10, true);
-            }
-        });
-
-        // Auto resume
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && player && player.getPlayerState) {
-                setTimeout(() => {
-                    const state = player.getPlayerState();
-                    if (state === YT.PlayerState.PAUSED) {
-                        player.playVideo();
-                    }
-                }, 300);
-            }
-        });
-
-        window.playVideo = playVideo;
-
-        // Hiển thị video mặc định
-        function showDefaultVideos() {
-            const html = `
-                <div class="section-title">📺 Video phổ biến</div>
-                ${playlist.map(v => `
-                    <div class="video-card" onclick="playVideo('${v.id}', '${v.title}')">
-                        <div class="video-title">▶ ${v.title}</div>
-                        <div class="video-id">${v.id}</div>
-                    </div>
-                `).join('')}
-            `;
-            document.getElementById('videoList').innerHTML = html;
-        }
-
-        // Tìm kiếm video
-        function searchVideos() {
-            const input = document.getElementById('searchInput').value.trim();
-            if (!input) {
-                showDefaultVideos();
-                return;
-            }
-
-            const videoList = document.getElementById('videoList');
-
-            // Kiểm tra nếu là URL YouTube
-            if (input.includes('youtube.com') || input.includes('youtu.be')) {
-                handleYouTubeLink(input, videoList);
-                return;
-            }
-
-            // Kiểm tra nếu là video ID (11 ký tự)
-            if (/^[a-zA-Z0-9_-]{11}$/.test(input)) {
-                playVideo(input, 'Video');
-                return;
-            }
-
-            // Tìm kiếm local
-            const query_lower = input.toLowerCase();
-            const results = playlist.filter(v => 
-                v.title.toLowerCase().includes(query_lower)
-            );
-
-            if (results.length === 0) {
-                // Tìm online qua web scraping
-                searchOnline(input, videoList);
-                return;
-            }
-
-            let html = `<div class="section-title">📺 Kết quả: "${input}" (${results.length} video)</div>`;
-            results.forEach((item, i) => {
-                html += `
-                    <div class="search-result" onclick="playVideo('${item.id}', '${item.title}')">
-                        <div class="result-title">▶ ${item.title}</div>
-                        <div class="result-channel">${item.id}</div>
-                    </div>
-                `;
-            });
-            videoList.innerHTML = html;
-        }
-
-        // Xử lý YouTube Link
-        function handleYouTubeLink(url, videoList) {
-            let videoId = null;
-            let listId = null;
-
-            // Parse video ID
-            if (url.includes('v=')) {
-                const match = url.match(/v=([a-zA-Z0-9_-]{11})/);
-                videoId = match ? match[1] : null;
-            } else if (url.includes('youtu.be')) {
-                const match = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
-                videoId = match ? match[1] : null;
-            }
-
-            // Parse playlist ID
-            if (url.includes('list=')) {
-                const match = url.match(/list=([a-zA-Z0-9_-]+)/);
-                listId = match ? match[1] : null;
-            }
-
-            if (videoId) {
-                playVideo(videoId, 'Video from link');
-                videoList.innerHTML = `<div style="padding: 20px; text-align: center; color: #5dff5d;">✓ Đang tải video...</div>`;
-            }
-
-            if (listId) {
-                loadPlaylist(listId, videoList);
-            }
-
-            if (!videoId && !listId) {
-                videoList.innerHTML = `<div style="padding: 20px; text-align: center; color: #ff6666;">❌ Link không hợp lệ</div>`;
-            }
-        }
-
-        // Tải danh sách phát
-        function loadPlaylist(listId, videoList) {
-            videoList.innerHTML = `<div style="padding: 20px; text-align: center; color: #666;">⏳ Đang tải danh sách phát...</div>`;
-
-            // Sử dụng API để lấy danh sách phát
-            const apiKey = 'AIzaSyDU8PjJrG_D7sD7WZvjSK2QaI0ZqNlFU8I';
-            const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${listId}&maxResults=50&key=${apiKey}`;
-
-            fetch(url)
-                .then(r => r.json())
-                .then(data => {
-                    if (!data.items || data.items.length === 0) {
-                        videoList.innerHTML = `<div style="padding: 20px; text-align: center; color: #666;">❌ Danh sách rỗng hoặc không có quyền truy cập</div>`;
-                        return;
-                    }
-
-                    let html = `<div class="section-title">📺 Danh sách phát (${data.items.length} video)</div>`;
-                    data.items.forEach((item, i) => {
-                        const videoId = item.snippet.resourceId.videoId;
-                        const title = item.snippet.title;
-                        html += `
-                            <div class="search-result" onclick="playVideo('${videoId}', '${title.replace(/'/g, "\\'")}')">
-                                <div class="result-title">▶ ${title}</div>
-                                <div class="result-channel">#${i+1}</div>
-                            </div>
-                        `;
-                    });
-                    videoList.innerHTML = html;
-                })
-                .catch(err => {
-                    console.log('Playlist error:', err);
-                    videoList.innerHTML = `<div style="padding: 20px; text-align: center; color: #ff6666;">❌ Không thể tải danh sách phát</div>`;
-                });
-        }
-
-        // Tìm kiếm online
-        function searchOnline(query, videoList) {
-            videoList.innerHTML = `<div style="padding: 20px; text-align: center; color: #666;">⏳ Tìm kiếm online...</div>`;
-
-            // Thử multiple sources
-            const sources = [
-                `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
-                `https://invidious.io/api/v1/search?q=${encodeURIComponent(query)}&type=video`,
-                `https://iv.ggtyler.dev/api/v1/search?q=${encodeURIComponent(query)}&type=video`
-            ];
-
-            let attempted = 0;
-            
-            sources.forEach((url, index) => {
-                fetch(url, { mode: 'cors' })
-                    .then(r => {
-                        if (index > 0) return r.json();
-                        return r.text();
-                    })
-                    .then(data => {
-                        attempted++;
-                        
-                        if (typeof data === 'string') {
-                            // Parse HTML
-                            const matches = data.match(/"videoId":"([a-zA-Z0-9_-]{11})"/g) || [];
-                            const videoIds = [];
-                            matches.forEach(m => {
-                                const id = m.match(/"videoId":"([a-zA-Z0-9_-]{11})"/)[1];
-                                if (!videoIds.includes(id) && videoIds.length < 15) {
-                                    videoIds.push(id);
-                                }
-                            });
-
-                            if (videoIds.length > 0) {
-                                let html = `<div class="section-title">📺 Kết quả online: "${query}"</div>`;
-                                videoIds.forEach((id, i) => {
-                                    html += `
-                                        <div class="search-result" onclick="playVideo('${id}', 'Video ${i+1}')">
-                                            <div class="result-title">▶ Video ${i+1}</div>
-                                            <div class="result-channel">youtube.com/watch?v=${id}</div>
-                                        </div>
-                                    `;
-                                });
-                                videoList.innerHTML = html;
-                            }
-                        } else if (data && data.length > 0) {
-                            // API result
-                            let html = `<div class="section-title">📺 Kết quả online: "${query}"</div>`;
-                            data.slice(0, 15).forEach((item, i) => {
-                                const videoId = item.videoId;
-                                const title = item.title;
-                                html += `
-                                    <div class="search-result" onclick="playVideo('${videoId}', '${title.replace(/'/g, "\\'")}')">
-                                        <div class="result-title">▶ ${title}</div>
-                                        <div class="result-channel">${item.author || 'YouTube'}</div>
-                                    </div>
-                                `;
-                            });
-                            videoList.innerHTML = html;
-                        }
-                    })
-                    .catch(err => {
-                        attempted++;
-                        console.log(`Source ${index} failed:`, err.message);
-                        
-                        if (attempted === sources.length) {
-                            videoList.innerHTML = `<div style="padding: 20px; text-align: center; color: #ff6666;">❌ Không tìm được kết quả. Thử từ khóa khác!</div>`;
-                        }
-                    });
-            });
-        }
-
-        // Search khi nhấn Enter
-        document.getElementById('searchInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                searchVideos();
-            }
-        });
-
-        window.searchVideos = searchVideos;
+        // Tải YouTube Iframe API
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
     </script>
+
 </body>
 </html>

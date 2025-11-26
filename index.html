@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NewPipe Web - No Ads</title>
+    <title>HiHi - YouTube Player</title>
     <style>
         * {
             margin: 0;
@@ -291,7 +291,7 @@
 </head>
 <body>
     <div id="header">
-        <div id="logo">▶ NewPipe</div>
+        <div id="logo">♫ HiHi</div>
         <div id="badges">
             <div class="badge">🚫 NO ADS</div>
             <div class="badge">📥 DOWNLOAD</div>
@@ -464,6 +464,8 @@
                     skipInterval = setInterval(autoSkipSponsors, 200);
                 }
                 blockAds();
+                // Giữ Audio Context để âm thanh phát khi tắt màn hình
+                keepAudioActive();
                 showStatus(`▶ ${currentVideoTitle}`);
             } else if (event.data === YT.PlayerState.PAUSED) {
                 document.getElementById('playPauseBtn').textContent = '▶ Phát';
@@ -473,6 +475,64 @@
                 }
             }
         }
+
+        // Giữ audio hoạt động khi tắt màn hình
+        function keepAudioActive() {
+            try {
+                // Tạo Audio Context để giữ audio session hoạt động
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                // Tạo oscillator âm thanh yếu (không nghe được) để giữ session
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                gain.gain.setValueAtTime(0, audioContext.currentTime); // Volume = 0
+                osc.start();
+                setTimeout(() => osc.stop(), 1000);
+                console.log('✓ Audio context activated');
+            } catch (err) {
+                console.log('Audio context:', err.message);
+            }
+        }
+
+        // Xử lý khi tab bị ẩn
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                // Tab hiển thị lại - tiếp tục phát
+                if (player && player.getPlayerState) {
+                    ensureYTReady().then(() => {
+                        setTimeout(() => {
+                            const state = player.getPlayerState();
+                            console.log('Current state:', state);
+                            if (state !== YT.PlayerState.PLAYING) {
+                                player.playVideo();
+                                console.log('▶ Tiếp tục phát sau khi bật tab');
+                            }
+                        }, 500);
+                    });
+                }
+            } else {
+                // Tab ẩn - ghi lại state
+                console.log('📱 Tab ẩn');
+                keepAudioActive();
+            }
+        });
+
+        // Kiểm tra định kỳ nếu video bị dừng
+        setInterval(() => {
+            if (document.hidden && player && player.getPlayerState) {
+                const state = player.getPlayerState();
+                // Nếu video bị dừng khi tab ẩn, phát lại
+                if (state === YT.PlayerState.PAUSED) {
+                    console.log('⚠️ Video dừng ở background, phát lại');
+                    player.playVideo();
+                    keepAudioActive();
+                }
+            }
+        }, 3000);
 
         function blockAds() {
             try {

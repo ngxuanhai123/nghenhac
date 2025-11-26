@@ -1,13 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>YouTube Viewer</title>
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
             background-color: #0f0f0f;
             color: #fff;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -16,102 +20,321 @@
             display: flex;
             flex-direction: column;
         }
+
         #header {
             background-color: #181818;
-            padding: 10px;
+            padding: 12px 10px;
             display: flex;
             align-items: center;
+            gap: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.5);
             z-index: 10;
+            flex-shrink: 0;
         }
+
         #logo {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
             color: #ff0000;
-            margin-right: 10px;
+            white-space: nowrap;
         }
+
         #search-container {
             flex: 1;
             display: flex;
+            gap: 0;
         }
+
         #searchInput {
             flex: 1;
-            padding: 8px;
+            padding: 8px 12px;
             border: 1px solid #303030;
             border-radius: 20px 0 0 20px;
             background-color: #212121;
             color: #fff;
+            font-size: 14px;
+            outline: none;
+            min-width: 0;
         }
+
+        #searchInput:focus {
+            background-color: #2a2a2a;
+            border-color: #555;
+        }
+
         #searchButton {
             background-color: #303030;
             color: #fff;
-            border: none;
-            padding: 8px 16px;
+            border: 1px solid #303030;
+            padding: 8px 14px;
             border-radius: 0 20px 20px 0;
             cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
+            transition: background-color 0.2s;
         }
+
+        #searchButton:active {
+            background-color: #404040;
+        }
+
         #app {
             flex: 1;
-            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
+
         #player-container {
-            position: sticky;
-            top: 0;
             background-color: #000;
             aspect-ratio: 16/9;
-            z-index: 5;
+            flex-shrink: 0;
+            width: 100%;
+            position: relative;
         }
+
         #player {
             width: 100%;
             height: 100%;
         }
+
         #results {
+            flex: 1;
+            overflow-y: auto;
             padding: 10px;
+            -webkit-overflow-scrolling: touch;
         }
+
+        #results::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #results::-webkit-scrollbar-track {
+            background: #181818;
+        }
+
+        #results::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 3px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         .video-card {
             display: flex;
-            margin-bottom: 15px;
+            gap: 10px;
+            margin-bottom: 12px;
             cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+            -webkit-user-select: none;
+            user-select: none;
         }
+
+        .video-card:active {
+            background-color: #1a1a1a;
+        }
+
         .thumbnail {
-            width: 168px;
-            height: 94px;
+            width: 140px;
+            height: 79px;
             background-size: cover;
             background-position: center;
+            background-color: #222;
             flex-shrink: 0;
-            border-radius: 8px;
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
         }
+
+        .thumbnail::after {
+            content: '▶';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 20px;
+            opacity: 0.7;
+            text-shadow: 0 0 4px rgba(0,0,0,0.8);
+        }
+
         .video-info {
-            padding-left: 10px;
             flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-width: 0;
         }
+
         .title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
-            margin-bottom: 5px;
+            line-height: 1.4;
+            margin-bottom: 4px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
+
         .channel {
-            font-size: 12px;
+            font-size: 11px;
             color: #aaa;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
+
         .views {
-            font-size: 12px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
             color: #aaa;
+            font-size: 13px;
+        }
+
+        .error-msg {
+            background-color: #2a1a1a;
+            border: 1px solid #8b3a3a;
+            color: #ff9999;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #444;
+            border-top: 2px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .suggestions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 10px 0;
+        }
+
+        .suggestion-btn {
+            background-color: #212121;
+            border: 1px solid #303030;
+            color: #fff;
+            padding: 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .suggestion-btn:active {
+            background-color: #303030;
+        }
+
+        @media (max-width: 600px) {
+            #header {
+                padding: 10px 8px;
+            }
+
+            #logo {
+                font-size: 16px;
+            }
+
+            .thumbnail {
+                width: 100px;
+                height: 56px;
+            }
+
+            .title {
+                font-size: 12px;
+            }
+
+            .channel {
+                font-size: 10px;
+            }
+
+            .views {
+                font-size: 10px;
+            }
+
+            .suggestions {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
-    <script src="https://www.youtube.com/iframe_api"></script>
     <script>
-        var player;
-        var segments = [];
-        var interval;
-        var currentVideoId = '';
+        let player = null;
+        let segments = [];
+        let skipInterval = null;
+        let currentVideoId = '';
+        let youtubeReady = false;
 
-        function onYouTubeIframeAPIReady() {
-            // API ready
+        // Mock data - danh sách video được lưu trữ
+        const mockVideos = {
+            'trending': [
+                { videoId: 'jNQXAC9IVRw', title: 'Me at the zoo', channel: 'jawed', thumbnail: 'https://i.ytimg.com/vi/jNQXAC9IVRw/mqdefault.jpg' },
+                { videoId: 'dQw4w9WgXcQ', title: 'Never Gonna Give You Up', channel: 'Rick Astley', thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg' },
+                { videoId: '9bZkp7q19f0', title: 'PSY - GANGNAM STYLE', channel: 'officialpsy', thumbnail: 'https://i.ytimg.com/vi/9bZkp7q19f0/mqdefault.jpg' },
+                { videoId: 'kJQP7kiw9Fk', title: 'Luis Fonsi - Despacito', channel: 'Luis Fonsi', thumbnail: 'https://i.ytimg.com/vi/kJQP7kiw9Fk/mqdefault.jpg' },
+            ],
+            'music': [
+                { videoId: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up', channel: 'Rick Astley', thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg' },
+                { videoId: 'kJQP7kiw9Fk', title: 'Luis Fonsi - Despacito', channel: 'Luis Fonsi', thumbnail: 'https://i.ytimg.com/vi/kJQP7kiw9Fk/mqdefault.jpg' },
+                { videoId: '9bZkp7q19f0', title: 'PSY - GANGNAM STYLE', channel: 'officialpsy', thumbnail: 'https://i.ytimg.com/vi/9bZkp7q19f0/mqdefault.jpg' },
+            ]
+        };
+
+        window.onYouTubeIframeAPIReady = function() {
+            console.log('YouTube API Ready');
+            youtubeReady = true;
+        };
+
+        function loadYouTubeAPI() {
+            return new Promise((resolve) => {
+                if (youtubeReady) {
+                    resolve();
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = 'https://www.youtube.com/iframe_api';
+                script.onload = () => {
+                    const checkReady = setInterval(() => {
+                        if (window.YT && window.YT.Player) {
+                            youtubeReady = true;
+                            clearInterval(checkReady);
+                            resolve();
+                        }
+                    }, 100);
+                };
+                document.head.appendChild(script);
+            });
         }
 
         function loadVideo(videoId) {
+            if (!videoId || !youtubeReady) return;
+
             if (player) {
                 player.loadVideoById(videoId);
             } else {
@@ -120,35 +343,22 @@
                     width: '100%',
                     videoId: videoId,
                     playerVars: {
-                        'autoplay': 1,
-                        'controls': 1,
-                        'rel': 0,
-                        'modestbranding': 1,
-                        'playsinline': 1
+                        autoplay: 1,
+                        controls: 1,
+                        rel: 0,
+                        modestbranding: 1,
+                        playsinline: 1,
+                        fs: 1
                     },
                     events: {
-                        'onReady': onPlayerReady,
-                        'onStateChange': onPlayerStateChange
+                        onReady: onPlayerReady,
+                        onStateChange: onPlayerStateChange
                     }
                 });
             }
             currentVideoId = videoId;
             fetchSponsorBlocks(videoId);
-            fetchRelatedVideos(videoId);
-        }
-
-        function fetchSponsorBlocks(videoId) {
-            var categories = encodeURIComponent('["sponsor","selfpromo","interaction","intro","outro","preview","music_offtopic","filler"]');
-            fetch('https://sponsor.ajay.app/api/skipSegments?videoID=' + videoId + '&categories=' + categories)
-                .then(response => response.json())
-                .then(data => {
-                    segments = data.map(s => ({
-                        start: s.segment[0],
-                        end: s.segment[1],
-                        skipped: false
-                    }));
-                })
-                .catch(error => console.error('SponsorBlock fetch error:', error));
+            loadSuggestions();
         }
 
         function onPlayerReady(event) {
@@ -157,17 +367,19 @@
 
         function onPlayerStateChange(event) {
             if (event.data === YT.PlayerState.PLAYING) {
-                if (!interval) {
-                    interval = setInterval(checkSkip, 200);
+                if (!skipInterval) {
+                    skipInterval = setInterval(checkSkip, 250);
                 }
             } else {
-                clearInterval(interval);
-                interval = null;
+                clearInterval(skipInterval);
+                skipInterval = null;
             }
         }
 
         function checkSkip() {
-            var current = player.getCurrentTime();
+            if (!player || !player.getCurrentTime) return;
+            
+            const current = player.getCurrentTime();
             for (let seg of segments) {
                 if (!seg.skipped && current >= seg.start && current < seg.end) {
                     player.seekTo(seg.end, true);
@@ -177,100 +389,158 @@
             }
         }
 
-        async function searchVideos(query) {
-            try {
-                const response = await fetch(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`);
-                const text = await response.text();
-                const match = text.match(/var ytInitialData = (.*?);<\/script>/s);
-                if (match) {
-                    const data = JSON.parse(match[1]);
-                    const contents = data.contents.twoColumnSearchResultsRenderer.primaryContents.sectionListRenderer.contents[0].itemSectionRenderer.contents;
-                    const videos = [];
-                    for (let item of contents) {
-                        if (item.videoRenderer) {
-                            const vr = item.videoRenderer;
-                            videos.push({
-                                videoId: vr.videoId,
-                                title: vr.title.runs[0].text,
-                                channel: vr.ownerText.runs[0].text,
-                                views: vr.viewCountText ? vr.viewCountText.simpleText : 'N/A',
-                                thumbnail: vr.thumbnail.thumbnails[vr.thumbnail.thumbnails.length - 1].url
-                            });
-                        }
-                    }
-                    displayVideos(videos, 'Search Results');
-                }
-            } catch (error) {
-                console.error('Search error:', error);
-            }
+        function fetchSponsorBlocks(videoId) {
+            fetch(`https://sponsor.ajay.app/api/skipSegments?videoID=${videoId}&categories=["sponsor","selfpromo","interaction","intro","outro"]`)
+                .then(r => r.json())
+                .then(data => {
+                    segments = (data || []).map(s => ({
+                        start: s.segment[0],
+                        end: s.segment[1],
+                        skipped: false
+                    }));
+                })
+                .catch(err => console.log('SponsorBlock:', err.message));
         }
 
-        async function fetchRelatedVideos(videoId) {
-            try {
-                const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
-                const text = await response.text();
-                const match = text.match(/var ytInitialData = (.*?);<\/script>/s);
-                if (match) {
-                    const data = JSON.parse(match[1]);
-                    const results = data.contents.twoColumnWatchNextResults.secondaryResults.secondaryResults.results;
-                    const videos = [];
-                    for (let item of results) {
-                        if (item.compactVideoRenderer) {
-                            const cvr = item.compactVideoRenderer;
-                            videos.push({
-                                videoId: cvr.videoId,
-                                title: cvr.title.simpleText,
-                                channel: cvr.longBylineText.runs[0].text,
-                                views: cvr.viewCountText.simpleText,
-                                thumbnail: cvr.thumbnail.thumbnails[cvr.thumbnail.thumbnails.length - 1].url
-                            });
-                        }
-                    }
-                    displayVideos(videos, 'Suggested Videos');
-                }
-            } catch (error) {
-                console.error('Related videos error:', error);
-            }
+        function loadSuggestions() {
+            const videos = mockVideos['trending'];
+            displayVideos(videos, 'Gợi ý tiếp theo');
         }
 
-        function displayVideos(videos, title) {
+        function searchVideos(query) {
+            if (!query.trim()) {
+                showSuggestions();
+                return;
+            }
+
             const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = `<h3 style="font-size: 16px; margin-bottom: 10px;">${title}</h3>`;
+            resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div> Đang tìm kiếm...</div>';
+
+            // Simulate API delay
+            setTimeout(() => {
+                const query_lower = query.toLowerCase();
+                let results = [];
+
+                // Tìm trong mock data
+                for (let category in mockVideos) {
+                    mockVideos[category].forEach(v => {
+                        if (v.title.toLowerCase().includes(query_lower) || 
+                            v.channel.toLowerCase().includes(query_lower)) {
+                            results.push(v);
+                        }
+                    });
+                }
+
+                // Nếu không tìm thấy, hiển thị những video phổ biến
+                if (results.length === 0) {
+                    results = mockVideos['trending'];
+                }
+
+                displayVideos(results, `Kết quả: "${query}"`);
+            }, 500);
+        }
+
+        function showSuggestions() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `
+                <div class="section-title">Tìm kiếm phổ biến</div>
+                <div class="suggestions">
+                    <button class="suggestion-btn" onclick="quickSearch('nhạc')">🎵 Nhạc</button>
+                    <button class="suggestion-btn" onclick="quickSearch('phim')">🎬 Phim</button>
+                    <button class="suggestion-btn" onclick="quickSearch('game')">🎮 Game</button>
+                    <button class="suggestion-btn" onclick="quickSearch('hài')">😂 Hài hước</button>
+                </div>
+                <div class="section-title">Xu hướng</div>
+            `;
+
+            const videos = mockVideos['trending'];
+            const title_elem = resultsDiv.querySelector('.section-title:last-of-type');
             videos.forEach(video => {
                 const card = document.createElement('div');
                 card.className = 'video-card';
                 card.onclick = () => loadVideo(video.videoId);
                 card.innerHTML = `
-                    <div class="thumbnail" style="background-image: url(${video.thumbnail});"></div>
+                    <div class="thumbnail" style="background-image: url('${video.thumbnail}');"></div>
                     <div class="video-info">
-                        <div class="title">${video.title}</div>
-                        <div class="channel">${video.channel}</div>
-                        <div class="views">${video.views}</div>
+                        <div>
+                            <div class="title">${escapeHtml(video.title)}</div>
+                            <div class="channel">${escapeHtml(video.channel)}</div>
+                        </div>
                     </div>
                 `;
                 resultsDiv.appendChild(card);
             });
         }
 
+        function quickSearch(query) {
+            document.getElementById('searchInput').value = query;
+            loadYouTubeAPI().then(() => {
+                searchVideos(query);
+            });
+        }
+
+        function displayVideos(videos, title) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `<div class="section-title">${title}</div>`;
+
+            if (videos.length === 0) {
+                resultsDiv.innerHTML += '<div class="loading">Không có video nào</div>';
+                return;
+            }
+
+            videos.forEach(video => {
+                const card = document.createElement('div');
+                card.className = 'video-card';
+                card.onclick = () => loadVideo(video.videoId);
+                card.innerHTML = `
+                    <div class="thumbnail" style="background-image: url('${video.thumbnail}');"></div>
+                    <div class="video-info">
+                        <div>
+                            <div class="title">${escapeHtml(video.title)}</div>
+                            <div class="channel">${escapeHtml(video.channel)}</div>
+                        </div>
+                    </div>
+                `;
+                resultsDiv.appendChild(card);
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const searchButton = document.getElementById('searchButton');
             const searchInput = document.getElementById('searchInput');
-            searchButton.onclick = () => searchVideos(searchInput.value);
-            searchInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') searchVideos(searchInput.value);
+
+            searchButton.addEventListener('click', () => {
+                searchVideos(searchInput.value);
             });
 
-            // Initial search or suggestions
-            searchVideos('funny cat videos'); // Default suggestion
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchVideos(searchInput.value);
+                }
+            });
+
+            // Tải YouTube API
+            loadYouTubeAPI().then(() => {
+                console.log('YouTube API loaded');
+            });
+
+            // Hiển thị gợi ý ban đầu
+            showSuggestions();
         });
     </script>
 </head>
 <body>
     <div id="header">
-        <div id="logo">YouTube</div>
+        <div id="logo">▶ YouTube</div>
         <div id="search-container">
-            <input id="searchInput" type="text" placeholder="Search">
-            <button id="searchButton">Search</button>
+            <input id="searchInput" type="text" placeholder="Tìm kiếm...">
+            <button id="searchButton">🔍</button>
         </div>
     </div>
     <div id="app">

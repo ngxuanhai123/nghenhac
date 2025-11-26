@@ -1,4 +1,8 @@
-<!DOCTYPE html>
+window.playVideo = playVideo;
+
+        // Hàm để thêm vào playlist và phát
+        function playFromList(videoId, title) {
+            // Thêm tất cả video từ danh sách <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -324,29 +328,29 @@
             </div>
 
             <div class="section-title">📺 Video phổ biến</div>
-            <div class="video-card" onclick="playVideo('dQw4w9WgXcQ')">
+            <div class="video-card" onclick="playFromList('dQw4w9WgXcQ', 'Rick Astley - Never Gonna Give You Up')">
                 <div class="video-title">▶ Rick Astley - Never Gonna Give You Up</div>
                 <div class="video-id">dQw4w9WgXcQ</div>
             </div>
-            <div class="video-card" onclick="playVideo('kJQP7kiw9Fk')">
+            <div class="video-card" onclick="playFromList('kJQP7kiw9Fk', 'Luis Fonsi - Despacito')">
                 <div class="video-title">▶ Luis Fonsi - Despacito</div>
                 <div class="video-id">kJQP7kiw9Fk</div>
             </div>
-            <div class="video-card" onclick="playVideo('9bZkp7q19f0')">
+            <div class="video-card" onclick="playFromList('9bZkp7q19f0', 'PSY - GANGNAM STYLE')">
                 <div class="video-title">▶ PSY - GANGNAM STYLE</div>
                 <div class="video-id">9bZkp7q19f0</div>
             </div>
-            <div class="video-card" onclick="playVideo('CvBfHwUxHIg')">
+            <div class="video-card" onclick="playFromList('CvBfHwUxHIg', 'Adele - Hello')">
                 <div class="video-title">▶ Adele - Hello</div>
                 <div class="video-id">CvBfHwUxHIg</div>
             </div>
-            <div class="video-card" onclick="playVideo('5Zs-TXdXWcQ')">
+            <div class="video-card" onclick="playFromList('5Zs-TXdXWcQ', 'Wiz Khalifa - See You Again')">
                 <div class="video-title">▶ Wiz Khalifa - See You Again</div>
                 <div class="video-id">5Zs-TXdXWcQ</div>
             </div>
 
             <div class="section-title">🎵 Nhạc hay</div>
-            <div class="video-card" onclick="playVideo('OPf0YbXqDm0')">
+            <div class="video-card" onclick="playFromList('OPf0YbXqDm0', 'Uptown Funk - Mark Ronson')">
                 <div class="video-title">▶ Uptown Funk - Mark Ronson</div>
                 <div class="video-id">OPf0YbXqDm0</div>
             </div>
@@ -362,6 +366,8 @@
         let currentVideoId = '';
         let currentVideoTitle = '';
         let ytReady = false;
+        let playlist = [];
+        let currentPlaylistIndex = 0;
 
         window.onYouTubeIframeAPIReady = function() {
             console.log('✓ YouTube API Ready');
@@ -473,6 +479,10 @@
                     clearInterval(skipInterval);
                     skipInterval = null;
                 }
+            } else if (event.data === YT.PlayerState.ENDED) {
+                // Video kết thúc - chuyển bài tiếp theo
+                console.log('✓ Video ended - next');
+                playNextVideo();
             }
         }
 
@@ -612,7 +622,13 @@
         document.getElementById('nextBtn').addEventListener('click', () => {
             if (player) {
                 ensureYTReady().then(() => {
-                    player.seekTo(player.getCurrentTime() + 10, true);
+                    // Nếu playlist có video, chuyển bài tiếp theo
+                    if (playlist.length > 0) {
+                        playNextVideo();
+                    } else {
+                        // Nếu không có playlist, skip 10s
+                        player.seekTo(player.getCurrentTime() + 10, true);
+                    }
                 });
             }
         });

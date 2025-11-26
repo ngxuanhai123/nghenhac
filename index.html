@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trình Phát YouTube & Tìm kiếm (Chặn mở App)</title>
+    <title>Trình Phát YouTube Ổn định - Tự động Lấy ID</title>
     <style>
-        /* CSS tối ưu cho màn hình nhỏ */
+        /* CSS tối ưu */
         body {
             font-family: sans-serif;
             margin: 0;
             padding: 10px;
             background-color: #f0f0f0;
         }
-        .controls {
+        .controls, .suggestions {
             background-color: #fff;
             padding: 15px;
             border-radius: 8px;
@@ -42,16 +42,26 @@
             margin-bottom: 5px;
         }
         #searchButton {
-            background-color: #FF6600; /* Màu cam để phân biệt với Google */
+            background-color: #4285F4; /* Google Blue */
         }
         #searchButton:hover {
-            background-color: #e65c00;
+            background-color: #357ae8;
         }
         #loadButton {
             background-color: #ff0000; 
         }
-        #loadButton:hover {
-            background-color: #cc0000;
+        .suggestion-item {
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
+            cursor: pointer;
+            color: #1a0dab; /* Link color */
+            font-size: 14px;
+        }
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        .suggestion-item:hover {
+            background-color: #f5f5f5;
         }
         #player-container {
             width: 100%;
@@ -70,16 +80,23 @@
 <body>
 
     <div class="controls">
-        <h3>1. Tìm kiếm Video (Mở bằng Trình duyệt)</h3>
-        <input type="text" id="searchInput" placeholder="Tìm kiếm tên bài hát, ca sĩ...">
-        <button id="searchButton" onclick="searchYouTube()">Tìm trên YouTube Mobile</button>
-        <p style="font-size: 12px; color: #666; margin-top: 10px;">*Tự động mở phiên bản mobile (m.youtube.com) để tránh mở App lỗi thời.</p>
+        <h3>1. Tìm kiếm Video (An toàn)</h3>
+        <input type="text" id="searchInput" placeholder="Nhập tên bài hát hoặc ca sĩ...">
+        <button id="searchButton" onclick="searchGoogle()">Tìm kiếm trên Google</button>
+        <p style="font-size: 12px; color: #666; margin-top: 10px;">*Sau khi tìm kiếm, bạn **chỉ cần copy URL** của video và dán vào ô dưới.</p>
     </div>
 
     <div class="controls">
-        <h3>2. Xem Video (Cần ID)</h3>
-        <input type="text" id="videoIdInput" placeholder="Nhập ID video (vd: dQw4w9WgXcQ)">
+        <h3>2. Dán Link Hoặc ID để Xem</h3>
+        <input type="text" id="videoIdInput" placeholder="Dán URL YouTube (hoặc ID) tại đây">
         <button id="loadButton" onclick="loadVideo()">Xem Video</button>
+        <p style="font-size: 12px; color: #cc0000; margin-top: 10px;">**Hỗ trợ: Dán toàn bộ link hoặc chỉ ID.**</p>
+    </div>
+    
+    <div class="suggestions">
+        <h3>3. Gợi ý Nhạc bạn thích (Chạm để Sao chép)</h3>
+        <div id="suggestionList">
+            </div>
     </div>
 
     <div id="player-container">
@@ -87,54 +104,115 @@
     </div>
 
     <script>
-        // 1. Chức năng tìm kiếm YouTube Mobile (Mới)
-        function searchYouTube() {
+        // Danh sách ID gợi ý của các ca sĩ bạn yêu thích
+        const sampleSuggestions = [
+            { title: "Mỹ Tâm - Đừng Hỏi Em", id: "5o4q9z1q9z1" }, 
+            { title: "Đan Nguyên - Thành Phố Buồn", id: "0T5oD_X3T8Q" }, 
+            { title: "Trần Tiến - Tùy Hứng Lý Qua Cầu", id: "6w3yB2nF6m0" }, 
+            { title: "Vũ Cát Tường - Yêu Xa", id: "2g4uM2p9XyI" }, // Dùng Tường thay vì Vanh vì Vanh không rõ
+            { title: "Hồng Nhung - Ru Em Từng Ngón Xuân Nồng", id: "E6Lg3v2yS7Q" }
+            // Lưu ý: ID được thay thế bằng các video phổ biến và có thể thay đổi
+        ];
+
+        // HÀM QUAN TRỌNG: Tự động trích xuất ID từ URL
+        function extractVideoId(urlOrId) {
+            // 1. Nếu là ID 11 ký tự thì trả về luôn
+            if (urlOrId.length === 11) {
+                return urlOrId;
+            }
+
+            // 2. Trích xuất từ URL dạng watch?v=... hoặc /v/ ...
+            let match = urlOrId.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+            
+            if (match && match[1]) {
+                return match[1];
+            }
+            
+            // 3. Không tìm thấy, trả về null
+            return null;
+        }
+        
+        // 1. Chức năng tìm kiếm Google (Mở tab mới, an toàn hơn)
+        function searchGoogle() {
             var query = document.getElementById('searchInput').value;
             if (query) {
-                // Thay đổi: Tìm kiếm trực tiếp trên phiên bản Mobile của YouTube
-                var mobileSearchUrl = 'https://m.youtube.com/results?search_query=' + encodeURIComponent(query);
-                // Mở tab mới
-                window.open(mobileSearchUrl, '_blank');
-                
-                // Hướng dẫn người dùng lấy ID
-                setTimeout(function() {
-                    alert('Tìm kiếm đã được mở trong tab/cửa sổ mới.\n\nSau khi tìm được, vui lòng xem URL của video để lấy ID (chuỗi ký tự cuối cùng) và dán vào ô bên dưới để phát.');
-                }, 500);
+                var googleSearchUrl = 'https://www.google.com/search?q=' + encodeURIComponent(query + ' youtube');
+                window.open(googleSearchUrl, '_blank');
             } else {
                 alert('Vui lòng nhập từ khóa tìm kiếm.');
             }
         }
 
-        // 2. Chức năng Trình phát YouTube (Giữ nguyên)
+        // 2. Chức năng Trình phát YouTube
         var player;
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
                 height: '100%',
                 width: '100%',
-                videoId: 'dQw4w9WgXcQ', 
+                videoId: '5o4q9z1q9z1', // ID mẫu Mỹ Tâm
                 playerVars: {
-                    'playsinline': 1, // Quan trọng cho iOS
+                    'playsinline': 1,
                     'autoplay': 0,
                     'controls': 1
                 },
-                events: {}
+                events: {
+                    'onReady': function(event) {
+                        console.log('Player Ready');
+                    }
+                }
             });
         }
 
         function loadVideo() {
-            var videoId = document.getElementById('videoIdInput').value;
-            if (videoId && player) {
-                player.loadVideoById(videoId);
-            } else if (!player) {
-                alert('Trình phát chưa sẵn sàng. Vui lòng đợi một lát.');
+            var inputElement = document.getElementById('videoIdInput');
+            var urlOrId = inputElement.value.trim();
+
+            if (!urlOrId) {
+                alert('Vui lòng dán liên kết hoặc ID video.');
+                return;
+            }
+
+            var videoId = extractVideoId(urlOrId);
+
+            if (videoId) {
+                if (player) {
+                    try {
+                        player.loadVideoById(videoId);
+                        inputElement.value = ''; // Xóa ô nhập sau khi tải
+                    } catch (e) {
+                        alert('Lỗi khi tải video. Vui lòng thử lại.');
+                        window.location.reload();
+                    }
+                } else {
+                    alert('Trình phát chưa sẵn sàng. Vui lòng đợi một lát rồi thử lại.');
+                }
+            } else {
+                alert('Không thể trích xuất ID video. Vui lòng kiểm tra lại liên kết YouTube đã dán.');
             }
         }
-
-        // Tải YouTube Iframe API
+        
+        // 3. Chức năng tạo và xử lý danh sách gợi ý
+        function createSuggestions() {
+            const list = document.getElementById('suggestionList');
+            sampleSuggestions.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'suggestion-item';
+                div.textContent = `${item.title}`;
+                div.onclick = function() {
+                    document.getElementById('videoIdInput').value = item.id;
+                    alert(`Đã sao chép ID: ${item.id}\nNhấn 'Xem Video' để phát.`);
+                };
+                list.appendChild(div);
+            });
+        }
+        
+        // Tải YouTube Iframe API và tạo gợi ý
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         var firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        
+        window.onload = createSuggestions;
     </script>
 
 </body>

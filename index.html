@@ -39,6 +39,28 @@
             white-space: nowrap;
         }
 
+        #screen-off-badge {
+            background-color: #1a4d1a;
+            border: 1px solid #2d8d2d;
+            color: #5dff5d;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            display: none;
+            white-space: nowrap;
+        }
+
+        #screen-off-badge.active {
+            display: inline-block;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
         #search-container {
             flex: 1;
             display: flex;
@@ -217,20 +239,6 @@
             font-size: 12px;
         }
 
-        .spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #444;
-            border-top: 2px solid #fff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
         .suggestions {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -284,6 +292,7 @@
             }
         }
     </style>
+    <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         let player = null;
         let segments = [];
@@ -292,6 +301,7 @@
         let youtubeReady = false;
         let isScreenOff = false;
         let wakeLock = null;
+        let audioContext = null;
 
         // Mock data - danh sách video được lưu trữ
         const mockVideos = {
@@ -374,45 +384,14 @@
                 }
                 // Kích hoạt Wake Lock khi đang phát
                 requestWakeLock();
+                // Giữ âm thanh khi màn hình tắt
+                preventSleepMode();
             } else {
                 clearInterval(skipInterval);
                 skipInterval = null;
                 releaseWakeLock();
             }
         }
-
-        async function requestWakeLock() {
-            try {
-                if ('wakeLock' in navigator && !wakeLock) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Wake Lock activated');
-                }
-            } catch (err) {
-                console.log('Wake Lock error:', err);
-            }
-        }
-
-        function releaseWakeLock() {
-            if (wakeLock) {
-                wakeLock.release().catch(err => console.log('Release error:', err));
-                wakeLock = null;
-                console.log('Wake Lock released');
-            }
-        }
-
-        // Xử lý khi trang bị ẩn/hiển thị
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                isScreenOff = true;
-                if (player && player.getPlayerState() === YT.PlayerState.PLAYING) {
-                    // Giữ âm thanh phát khi màn hình tắt
-                    console.log('Screen off - audio continues');
-                }
-            } else {
-                isScreenOff = false;
-                console.log('Screen on');
-            }
-        });
 
         function checkSkip() {
             if (!player || !player.getCurrentTime) return;
@@ -440,6 +419,76 @@
                 .catch(err => console.log('SponsorBlock:', err.message));
         }
 
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator && !wakeLock) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock activated');
+                }
+            } catch (err) {
+                console.log('Wake Lock not supported:', err.message);
+            }
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock) {
+                wakeLock.release().catch(err => console.log('Release error:', err));
+                wakeLock = null;
+                console.log('Wake Lock released');
+            }
+        }
+
+        function preventSleepMode() {
+            // Tạo video ẩn để giữ âm thanh phát khi tắt màn hình
+            let hiddenVideo = document.getElementById('hidden-audio-video');
+            if (!hiddenVideo) {
+                hiddenVideo = document.createElement('video');
+                hiddenVideo.id = 'hidden-audio-video';
+                hiddenVideo.style.display = 'none';
+                hiddenVideo.loop = true;
+                hiddenVideo.muted = false;
+                document.body.appendChild(hiddenVideo);
+            }
+        }
+
+        // Xử lý khi màn hình bị tắt
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                isScreenOff = true;
+                const badge = document.getElementById('screen-off-badge');
+                if (badge) badge.classList.add('active');
+                console.log('🔇 Screen off - audio continues');
+                
+                // Đảm bảo âm thanh tiếp tục
+                if (player && player.getPlayerState() === YT.PlayerState.PLAYING) {
+                    // Giữ context audio hoạt động
+                    if (!audioContext) {
+                        try {
+                            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        } catch (e) {
+                            console.log('AudioContext not supported');
+                        }
+                    }
+                }
+            } else {
+                isScreenOff = false;
+                const badge = document.getElementById('screen-off-badge');
+                if (badge) badge.classList.remove('active');
+                console.log('🔊 Screen on');
+            }
+        });
+
+        // Ngăn chặn tắt âm thanh khi tắt màn hình
+        document.addEventListener('pause', (e) => {
+            if (isScreenOff && player && currentVideoId) {
+                setTimeout(() => {
+                    if (player && player.getPlayerState() !== YT.PlayerState.PLAYING) {
+                        player.playVideo();
+                    }
+                }, 100);
+            }
+        }, true);
+
         function loadSuggestions() {
             const videos = mockVideos['trending'];
             displayVideos(videos, 'Gợi ý tiếp theo');
@@ -454,12 +503,10 @@
             const resultsDiv = document.getElementById('results');
             resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div> Đang tìm kiếm...</div>';
 
-            // Simulate API delay
             setTimeout(() => {
                 const query_lower = query.toLowerCase();
                 let results = [];
 
-                // Tìm trong mock data
                 for (let category in mockVideos) {
                     mockVideos[category].forEach(v => {
                         if (v.title.toLowerCase().includes(query_lower) || 
@@ -469,7 +516,6 @@
                     });
                 }
 
-                // Nếu không tìm thấy, hiển thị những video phổ biến
                 if (results.length === 0) {
                     results = mockVideos['trending'];
                 }
@@ -563,22 +609,12 @@
                 }
             });
 
-            // Tải YouTube API
             loadYouTubeAPI().then(() => {
                 console.log('YouTube API loaded');
             });
 
-            // Hiển thị gợi ý ban đầu
             showSuggestions();
 
-            // Xử lý khi tab bị ẩn
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden && player && player.getPlayerState() === 1) {
-                    console.log('App in background - audio continues');
-                }
-            });
-
-            // Giải phóng Wake Lock khi đóng trang
             window.addEventListener('beforeunload', () => {
                 releaseWakeLock();
             });
@@ -588,6 +624,7 @@
 <body>
     <div id="header">
         <div id="logo">▶ YouTube</div>
+        <div id="screen-off-badge">🔇 AUDIO</div>
         <div id="search-container">
             <input id="searchInput" type="text" placeholder="Tìm kiếm...">
             <button id="searchButton">🔍</button>
